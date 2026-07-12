@@ -2,11 +2,11 @@
 
 POC of a structured ESG report editor. A single `MiniQuestionnaire` block (VSME B8 — code of conduct / human rights checklist) is edited in the browser, persisted as JSONB in Postgres (Neon), and rendered as XHTML from the same JSON.
 
-## Prerequisites
+## Stack
 
-- Python 3.11+
-- Node.js 18+
-- A [Neon](https://neon.tech) Postgres database
+- **Next.js 15** (App Router) — API routes + React UI in one project
+- **Neon** — serverless Postgres
+- **Vercel** — deployment
 
 ## Database setup
 
@@ -24,54 +24,39 @@ CREATE TABLE blocks (
 
 ## Running locally
 
-### Backend
-
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-export DATABASE_URL="postgresql://user:password@host/dbname?sslmode=require"
-python app.py
-# Runs on http://localhost:5000
-```
-
-### Frontend
-
-```bash
-cd frontend
 npm install
-npm run dev
-# Runs on http://localhost:5173
 ```
 
-The Vite dev server proxies `/api/*` to `http://localhost:5000`.
+Create a `.env.local` file:
+
+```
+DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
+```
+
+Then:
+
+```bash
+npm run dev
+# Runs on http://localhost:3000
+```
 
 ## Deployment (Vercel)
 
-### Backend
-
-1. Import the repo in Vercel, set **Root Directory** to `backend`.
-2. Add environment variable `DATABASE_URL` in the Vercel dashboard.
-3. Vercel uses `vercel.json` to route `/api/*` to `app.py`.
-
-### Frontend
-
-1. Add a second Vercel project, set **Root Directory** to `frontend`.
-2. Add environment variable `VITE_API_URL` pointing to the backend Vercel URL (e.g. `https://your-backend.vercel.app`).
-3. Deploy — Vercel detects Vite automatically.
+1. Import the repo in Vercel
+2. Add environment variable `DATABASE_URL` in the Vercel dashboard
+3. Deploy — Vercel detects Next.js automatically
 
 ## API
 
 | Method | Path                  | Description                              |
 |--------|-----------------------|------------------------------------------|
 | GET    | `/api/block/b8`       | Returns current B8 block (or empty)      |
-| PUT    | `/api/block/b8`       | Validates and upserts B8 block           |
+| PUT    | `/api/block/b8`       | Validates with Zod and upserts to DB     |
 | GET    | `/api/block/b8/xhtml` | Returns XHTML rendered from stored JSON  |
 
 ## Verifying the POC
 
 ```sql
--- Confirm content is structured JSONB, not HTML
 SELECT content->'answers' FROM blocks WHERE questionnaire_code = 'B8';
 ```
