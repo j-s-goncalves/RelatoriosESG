@@ -96,16 +96,28 @@ export default async function ReportPage() {
           <span><strong>{counts.nao_iniciado}</strong> não iniciados</span>
         </div>
         <div style={{ marginLeft: "auto", alignSelf: "center" }}>
-          <a
-            href="/api/report/xhtml"
-            style={{
-              padding: "0.4rem 0.9rem", borderRadius: "4px",
-              background: "#0070f3", color: "#fff",
-              textDecoration: "none", fontSize: "0.85rem",
-            }}
-          >
-            Exportar XHTML completo
-          </a>
+          <div style={{ display: "flex", gap: "0.5rem", flexDirection: "column" }}>
+            <a
+              href="/api/report/xhtml"
+              style={{
+                padding: "0.4rem 0.9rem", borderRadius: "4px",
+                background: "#0070f3", color: "#fff",
+                textDecoration: "none", fontSize: "0.85rem", textAlign: "center",
+              }}
+            >
+              Exportar XHTML
+            </a>
+            <a
+              href="/api/report/ixbrl"
+              style={{
+                padding: "0.4rem 0.9rem", borderRadius: "4px",
+                background: "#1a6e1a", color: "#fff",
+                textDecoration: "none", fontSize: "0.85rem", textAlign: "center",
+              }}
+            >
+              Exportar iXBRL
+            </a>
+          </div>
         </div>
       </div>
 
