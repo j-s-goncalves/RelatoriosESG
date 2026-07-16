@@ -9,6 +9,7 @@ const BLOCK_TYPE_LABELS = {
   repeatable_table:             "Tabela repetível",
   repeatable_table_with_totals: "Tabela repetível c/ totais",
   time_series_comparative:      "Série temporal",
+  narrative:                    "Narrativa",
 };
 
 export default function DisclosuresPage() {

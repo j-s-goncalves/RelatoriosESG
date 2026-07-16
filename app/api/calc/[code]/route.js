@@ -19,12 +19,15 @@ export async function POST(request, { params }) {
   }
 
   const body = await request.json();
+  const rawContent = body?.content !== undefined ? body.content : body;
+  const context    = body?.context ?? {};
+
   const schema = getContentSchema(definition.block_type);
-  const result = schema.safeParse(body);
+  const result = schema.safeParse(rawContent);
   if (!result.success) {
     return NextResponse.json({ error: result.error.errors }, { status: 422 });
   }
 
-  const { derived } = compute(definition, result.data);
+  const { derived } = compute(definition, result.data, context);
   return NextResponse.json({ derived });
 }

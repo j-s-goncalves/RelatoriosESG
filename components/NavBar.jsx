@@ -54,6 +54,7 @@ export default function NavBar({ user, undertakings, activeUndertakingId, period
         <a href="/periods" style={{ ...LINK, color: "#c00", fontSize: "0.8rem" }}>⚠ Sem período activo</a>
       )}
 
+      <a href="/report" style={LINK}>Relatório</a>
       <a href="/disclosures" style={LINK}>Divulgações</a>
       <a href="/master" style={LINK}>Mestre</a>
       <a href="/periods" style={LINK}>Períodos</a>

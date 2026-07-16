@@ -31,11 +31,15 @@ const PROVENANCE_CONFIG = {
 // ── DerivedValues — exibe campos calculados no backend ────────────────────────
 
 const DERIVED_LABELS = {
-  total_tco2e:      { label: "Total GEE", unit: "tCO2e" },
-  total_headcount:  { label: "Total efectivo", unit: null },
-  total_fte:        { label: "Total ETI", unit: null },
-  total_pct_total:  { label: "Total % do total", unit: "%" },
-  total_quantity:   { label: "Total quantidade", unit: "toneladas" },
+  total_tco2e:        { label: "Total tCO₂e", unit: "tCO2e" },
+  total_mwh:          { label: "Total MWh", unit: "MWh" },
+  total_headcount:    { label: "Total efectivo", unit: null },
+  total_fte:          { label: "Total ETI", unit: null },
+  total_pct_total:    { label: "Total % do total", unit: "%" },
+  total_quantity:     { label: "Total quantidade", unit: "toneladas" },
+  total_quantity_ton: { label: "Total (toneladas)", unit: "toneladas" },
+  total_quantity_kg:  { label: "Total (kg)", unit: "kg" },
+  pay_gap_pct:        { label: "Diferença salarial por género", unit: "%" },
 };
 
 function DerivedValues({ derived }) {
@@ -746,6 +750,35 @@ function TimeSeriesEditor({ definition, content, onChange, disabled }) {
   );
 }
 
+// ── Narrative sub-editor ──────────────────────────────────────────────────────
+
+function NarrativeEditor({ definition, content, onChange, disabled }) {
+  return (
+    <div>
+      <div style={{ marginBottom: "1rem" }}>
+        <label style={{ display: "block", fontSize: "0.85rem", color: "#555", marginBottom: "0.2rem" }}>
+          {definition.text_label ?? "Texto"}
+        </label>
+        <textarea
+          disabled={disabled} rows={8}
+          value={content.text ?? ""}
+          onChange={(e) => onChange({ ...content, text: e.target.value })}
+          style={{ width: "100%", maxWidth: "700px", padding: "0.35rem 0.5rem", fontFamily: "inherit" }}
+        />
+      </div>
+      <div style={{ marginBottom: "1rem" }}>
+        <label style={{ display: "block", fontSize: "0.85rem", color: "#555", marginBottom: "0.2rem" }}>Nota</label>
+        <textarea
+          disabled={disabled} rows={2}
+          value={content.note ?? ""}
+          onChange={(e) => onChange({ ...content, note: e.target.value })}
+          style={{ width: "100%", maxWidth: "700px", padding: "0.35rem 0.5rem", fontFamily: "inherit" }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Main DisclosureEditor ─────────────────────────────────────────────────────
 
 export default function DisclosureEditor({ definition }) {
@@ -902,6 +935,9 @@ export default function DisclosureEditor({ definition }) {
           onChange={setContent} disabled={!editable} totals={totals} />;
       case "time_series_comparative":
         return <TimeSeriesEditor definition={definition} content={content}
+          onChange={setContent} disabled={!editable} />;
+      case "narrative":
+        return <NarrativeEditor definition={definition} content={content}
           onChange={setContent} disabled={!editable} />;
       default:
         return <p style={{ color: "#c00" }}>Unknown block type: {definition.block_type}</p>;
