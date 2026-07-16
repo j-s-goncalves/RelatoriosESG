@@ -46,6 +46,6 @@ export async function PUT(request) {
   const result = MiniQuestionnaireSchema.safeParse(body);
   if (!result.success) return NextResponse.json({ error: result.error.errors }, { status: 422 });
 
-  await upsertBlock(undertaking.id, period.id, "B8", result.data);
+  await upsertBlock(undertaking.id, period.id, "B8", "mini_questionnaire", result.data);
   return NextResponse.json({ ok: true });
 }
