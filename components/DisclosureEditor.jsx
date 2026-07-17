@@ -38,6 +38,8 @@ const DERIVED_LABELS = {
   total_pct_total:    { label: "Total % do total", unit: "%" },
   total_quantity:     { label: "Total quantidade", unit: "toneladas" },
   total_quantity_ton: { label: "Total (toneladas)", unit: "toneladas" },
+  total_recycled:     { label: "Total desviado para reciclagem/reutilização", unit: null },
+  total_disposed:     { label: "Total encaminhado para eliminação", unit: null },
   total_quantity_kg:  { label: "Total (kg)", unit: "kg" },
   pay_gap_pct:        { label: "Diferença salarial por género", unit: "%" },
 };
@@ -522,48 +524,94 @@ function StructuredTableEditor({ definition, content, onChange, disabled }) {
     onChange({ ...content, cells: { ...cells, [`${rowCode}::${colCode}`]: value } });
   }
 
+  function setMeta(fieldCode, value) {
+    onChange({ ...content, meta: { ...(content.meta ?? {}), [fieldCode]: value } });
+  }
+
+  const inputCols = cols.filter((c) => c.value_type === "numeric" && !c.computed);
+
+  function computedValue(row) {
+    return (col) => {
+      // Sum all non-computed numeric cols in this row
+      return inputCols.reduce((sum, c) => {
+        const v = cells[`${row.row_code}::${c.col_code}`];
+        return sum + (typeof v === "number" ? v : 0);
+      }, 0);
+    };
+  }
+
   return (
-    <table style={{ borderCollapse: "collapse", width: "100%" }}>
-      <thead>
-        <tr>
-          <th style={TH}>—</th>
-          {cols.map((col) => (
-            <th key={col.col_code} style={TH}>
-              {col.label}{col.unit && <span style={{ color: "#888" }}> ({col.unit})</span>}
-            </th>
+    <div>
+      {(definition.meta_fields ?? []).length > 0 && (
+        <div style={{ marginBottom: "1rem", padding: "0.6rem 0.75rem", background: "#f8f9fa", border: "1px solid #e8e8e8", borderRadius: "4px" }}>
+          {(definition.meta_fields ?? []).map((field) => (
+            <div key={field.field_code} style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.4rem" }}>
+              <label style={{ fontSize: "0.85rem", color: "#555", minWidth: "180px" }}>{field.label}</label>
+              <select
+                disabled={disabled}
+                value={content.meta?.[field.field_code] ?? ""}
+                onChange={(e) => setMeta(field.field_code, e.target.value || null)}
+                style={{ padding: "0.25rem 0.4rem" }}
+              >
+                <option value="">— seleccione —</option>
+                {(field.options ?? []).map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
           ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row.row_code}>
-            <td style={{ ...TD, fontWeight: 600, background: "#fafafa" }}>{row.label}</td>
-            {cols.map((col) => {
-              const key = `${row.row_code}::${col.col_code}`;
-              const val = cells[key] ?? col.default_value ?? "";
-              return (
-                <td key={col.col_code} style={TD}>
-                  <input
-                    type={col.value_type === "numeric" ? "number" : "text"}
-                    step={col.value_type === "numeric" ? "any" : undefined}
-                    disabled={disabled}
-                    value={val === null ? "" : val}
-                    onChange={(e) =>
-                      setCell(row.row_code, col.col_code,
-                        col.value_type === "numeric"
-                          ? (e.target.value === "" ? null : parseFloat(e.target.value))
-                          : e.target.value
-                      )
-                    }
-                    style={{ width: "100%", padding: "0.25rem 0.35rem", border: "none", background: "transparent" }}
-                  />
-                </td>
-              );
-            })}
+        </div>
+      )}
+      <table style={{ borderCollapse: "collapse", width: "100%" }}>
+        <thead>
+          <tr>
+            <th style={TH}>—</th>
+            {cols.map((col) => (
+              <th key={col.col_code} style={{ ...TH, background: col.computed ? "#eef0fb" : "#f5f5f5" }}>
+                {col.label}{col.unit && <span style={{ color: "#888" }}> ({col.unit})</span>}
+              </th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.row_code}>
+              <td style={{ ...TD, fontWeight: 600, background: "#fafafa" }}>{row.label}</td>
+              {cols.map((col) => {
+                if (col.computed) {
+                  const val = computedValue(row)(col);
+                  return (
+                    <td key={col.col_code} style={{ ...TD, background: "#f0f4ff", color: "#333", textAlign: "right" }}>
+                      {val.toLocaleString("pt-PT")}
+                    </td>
+                  );
+                }
+                const key = `${row.row_code}::${col.col_code}`;
+                const val = cells[key] ?? col.default_value ?? "";
+                return (
+                  <td key={col.col_code} style={TD}>
+                    <input
+                      type={col.value_type === "numeric" ? "number" : "text"}
+                      step={col.value_type === "numeric" ? "any" : undefined}
+                      disabled={disabled}
+                      value={val === null ? "" : val}
+                      onChange={(e) =>
+                        setCell(row.row_code, col.col_code,
+                          col.value_type === "numeric"
+                            ? (e.target.value === "" ? null : parseFloat(e.target.value))
+                            : e.target.value
+                        )
+                      }
+                      style={{ width: "100%", padding: "0.25rem 0.35rem", border: "none", background: "transparent" }}
+                    />
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -573,11 +621,12 @@ function StructuredTableEditor({ definition, content, onChange, disabled }) {
 function RepeatableTableEditor({ definition, content, onChange, disabled, totals }) {
   const cols = definition.columns ?? [];
   const rows = content.rows ?? [];
+  const inputCols = cols.filter((c) => c.value_type === "numeric" && !c.computed);
 
   function addRow() {
     const newRow = {
       row_id: Math.random().toString(36).slice(2, 9),
-      values: Object.fromEntries(cols.map((c) => [c.col_code, c.default_value ?? null])),
+      values: Object.fromEntries(cols.filter((c) => !c.computed).map((c) => [c.col_code, c.default_value ?? null])),
     };
     onChange({ ...content, rows: [...rows, newRow] });
   }
@@ -597,11 +646,31 @@ function RepeatableTableEditor({ definition, content, onChange, disabled, totals
 
   return (
     <div>
+      {definition.url_field_label && (
+        <div style={{ marginBottom: "1rem" }}>
+          <label style={{ display: "block", fontSize: "0.85rem", color: "#555", marginBottom: "0.3rem" }}>
+            {definition.url_field_label}
+          </label>
+          <input
+            type="url"
+            disabled={disabled}
+            value={content.reference_url ?? ""}
+            onChange={(e) => onChange({ ...content, reference_url: e.target.value })}
+            placeholder="https://..."
+            style={{ width: "100%", maxWidth: "600px", padding: "0.35rem 0.5rem" }}
+          />
+          {content.reference_url && (
+            <p style={{ fontSize: "0.8rem", color: "#888", margin: "0.25rem 0 0" }}>
+              Se preenchida, esta referência substitui o preenchimento directo da tabela abaixo.
+            </p>
+          )}
+        </div>
+      )}
       <table style={{ borderCollapse: "collapse", width: "100%", marginBottom: "0.75rem" }}>
         <thead>
           <tr>
             {cols.map((col) => (
-              <th key={col.col_code} style={TH}>
+              <th key={col.col_code} style={{ ...TH, background: col.computed ? "#eef0fb" : "#f5f5f5" }}>
                 {col.label}{col.unit && <span style={{ color: "#888" }}> ({col.unit})</span>}
               </th>
             ))}
@@ -612,6 +681,17 @@ function RepeatableTableEditor({ definition, content, onChange, disabled, totals
           {rows.map((row) => (
             <tr key={row.row_id}>
               {cols.map((col) => {
+                if (col.computed) {
+                  const val = inputCols.reduce((sum, c) => {
+                    const v = row.values?.[c.col_code];
+                    return sum + (typeof v === "number" ? v : 0);
+                  }, 0);
+                  return (
+                    <td key={col.col_code} style={{ ...TD, background: "#f0f4ff", color: "#333", textAlign: "right" }}>
+                      {val.toLocaleString("pt-PT")}
+                    </td>
+                  );
+                }
                 const val = row.values?.[col.col_code] ?? col.default_value ?? "";
                 return (
                   <td key={col.col_code} style={TD}>
@@ -760,7 +840,7 @@ function NarrativeEditor({ definition, content, onChange, disabled }) {
           {definition.text_label ?? "Texto"}
         </label>
         <textarea
-          disabled={disabled} rows={8}
+          disabled={disabled} rows={24}
           value={content.text ?? ""}
           onChange={(e) => onChange({ ...content, text: e.target.value })}
           style={{ width: "100%", maxWidth: "700px", padding: "0.35rem 0.5rem", fontFamily: "inherit" }}
